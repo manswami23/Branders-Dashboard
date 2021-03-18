@@ -2,6 +2,7 @@ library(shiny)
 library(tidyverse)
 library(readxl)
 library(lubridate)
+library(nlme)
 datasets <- read_excel("data/sentiments.xlsx")
 dateTibble <- datasets %>%
   summarize(mindate = min(days), maxdate = max(days)) %>%
@@ -68,28 +69,28 @@ server <- function(input, output) {
       plot = ggplot(data=tempData)
       if ("pos" %in% input$sentiment) {
           plot = plot + 
-            geom_point(mapping=aes(x=days, y=positive, colour="Positive", alpha=.5))
+            geom_point(mapping=aes(x=days, y=positive, colour="Positive"), alpha=.5)
           
           if (input$trend) {
             plot = plot +
-              geom_smooth(mapping=aes(x=days, y=positive, colour="Positive"))
+              geom_smooth(mapping=aes(x=days, y=positive), colour="black")
           }
       }
       else if ("neg" %in% input$sentiment) {
         plot = plot + 
-          geom_point(mapping=aes(x=days, y=negative, colour="Negative", , alpha=.5))
+          geom_point(mapping=aes(x=days, y=negative, colour="Negative"), alpha=.5)
         if (input$trend) {
           plot = plot +
-            geom_smooth(se=F, mapping=aes(x=days, y=negative, colour="Negative"))
+            geom_smooth(mapping=aes(x=days, y=negative), colour="black")
         }        
       }
       else if ("neut" %in% input$sentiment) {
         plot = plot + 
-          geom_point(mapping=aes(x=days, y=neutral, colour="Neutral", , alpha=.5))
+          geom_point(mapping=aes(x=days, y=neutral, colour="Neutral"), alpha=.5)
         
         if (input$trend) {
           plot = plot +
-            geom_smooth(se=F, mapping=aes(x=days, y=neutral, colour="Neutral"))
+            geom_smooth(mapping=aes(x=days, y=neutral), colour="black")
         }  
       }
       plot = 
