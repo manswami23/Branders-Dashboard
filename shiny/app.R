@@ -32,8 +32,8 @@ ui <- pageWithSidebar(
                    min = minPossibleDate, max = maxPossibleDate
     ),
   
-    # Input: Checkbox for whether trend line should be included ----
-    checkboxInput("trend", "Show trend line", FALSE)
+    # Input: Checkbox for whether pattern line should be included ----
+    checkboxInput("pattern", "Show pattern line", FALSE)
     
   ),
   
@@ -53,7 +53,7 @@ server <- function(input, output) {
   # This is in a reactive expression since it is shared by the
   # output$caption and output$mpgPlot functions
   formulaText <- reactive({
-    paste("Sentiment ~ Day")
+    paste("Sentiment by Day")
   })
   
   # Return the formula text for printing as a caption ----
@@ -71,26 +71,26 @@ server <- function(input, output) {
           plot = plot + 
             geom_point(mapping=aes(x=days, y=positive, colour="Positive"), alpha=.5)
           
-          if (input$trend) {
+          if (input$pattern) {
             plot = plot +
-              geom_smooth(mapping=aes(x=days, y=positive), colour="black")
+              geom_smooth(method=loess, mapping=aes(x=days, y=positive), colour="black")
           }
       }
       else if ("neg" %in% input$sentiment) {
         plot = plot + 
           geom_point(mapping=aes(x=days, y=negative, colour="Negative"), alpha=.5)
-        if (input$trend) {
+        if (input$pattern) {
           plot = plot +
-            geom_smooth(mapping=aes(x=days, y=negative), colour="black")
+            geom_smooth(method=loess, mapping=aes(x=days, y=negative), colour="black")
         }        
       }
       else if ("neut" %in% input$sentiment) {
         plot = plot + 
           geom_point(mapping=aes(x=days, y=neutral, colour="Neutral"), alpha=.5)
         
-        if (input$trend) {
+        if (input$pattern) {
           plot = plot +
-            geom_smooth(mapping=aes(x=days, y=neutral), colour="black")
+            geom_smooth(method=loess, mapping=aes(x=days, y=neutral), colour="black")
         }  
       }
       plot = 
