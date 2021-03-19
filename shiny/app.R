@@ -4,12 +4,27 @@ library(readxl)
 library(lubridate)
 library(nlme)
 datasets <- read_excel("data/sentiments.xlsx")
-dateTibble <- datasets %>%
-  summarize(mindate = min(days), maxdate = max(days)) %>%
+summaryTibble <- datasets %>%
+  summarize(mindate = min(days), maxdate = max(days), 
+            maxPos = max(positive), maxNeg = max(negative), 
+            maxNeut = max(neutral)) %>%
   head()
 
-minPossibleDate <- dateTibble$mindate
-maxPossibleDate <- dateTibble$maxdate
+
+minPossibleDate <- summaryTibble$mindate
+maxPossibleDate <- summaryTibble$maxdate
+maxPos <- summaryTibble$maxPos
+maxNeg <- summaryTibble$maxNeg
+maxNeut <- summaryTibble$maxNeut
+
+maxY <- maxPos
+if (maxNeg > maxY) {
+  maxY <- maxNeg
+}
+if (maxNeut > maxY) {
+  maxY <- maxNeut
+}
+
 
 
 ui <- pageWithSidebar(
@@ -22,14 +37,17 @@ ui <- pageWithSidebar(
     
     # Input: Selector for variable to plot against mpg ----
     selectInput("sentiment", "Sentiment to display:", 
-                c("Positive" = "pos",
-                  "Negative" = "neg",
-                  "Neutral" = "neut"), selected="pos"),
+                c("Positive" = "Positive",
+                  "Negative" = "Negative",
+                  "Neutral" = "Neutral"), selected="pos"),
     
     dateRangeInput('dateRange',
                    label = 'Date range input: yyyy-mm-dd',
                    start = minPossibleDate, end = maxPossibleDate,
                    min = minPossibleDate, max = maxPossibleDate
+    ),
+    sliderInput("maxY", "Maximum Y-axis:",
+                min = 0, max = maxY, value = 25000
     ),
   
     # Input: Checkbox for whether pattern line should be included ----
@@ -43,17 +61,20 @@ ui <- pageWithSidebar(
     h3(textOutput("caption")),
     
     # Output: Plot of the requested variable against mpg ----
-    plotOutput("mpgPlot")
+    plotOutput("sentimentPlot")
   )
 )
 
 # Define server logic to plot
-server <- function(input, output) {
+server <- function(input, output, session) {
+  
+  observeEvent(input$sentiment, {
+    updateSliderInput(session, "maxY",value=maxY)
+  })
+  
   # Compute the formula text ----
-  # This is in a reactive expression since it is shared by the
-  # output$caption and output$mpgPlot functions
   formulaText <- reactive({
-    paste("Sentiment by Day")
+    paste(input$sentiment, " Sentiment by Day")
   })
   
   # Return the formula text for printing as a caption ----
@@ -61,13 +82,13 @@ server <- function(input, output) {
     formulaText()
   })
   
-  output$mpgPlot <- renderPlot({
+  output$sentimentPlot <- renderPlot({
     tempData <- datasets %>%
       filter(days >= ymd(input$dateRange[1]), days <= ymd(input$dateRange[2]))
     
-    if (!is.null(input$sentiment)) {
+    if (!is.null(input$sentiment))
       plot = ggplot(data=tempData)
-      if ("pos" %in% input$sentiment) {
+      if ("Positive" %in% input$sentiment) {
           plot = plot + 
             geom_point(mapping=aes(x=days, y=positive, colour="Positive"), alpha=.5)
           
@@ -76,7 +97,7 @@ server <- function(input, output) {
               geom_smooth(method=loess, mapping=aes(x=days, y=positive), colour="black")
           }
       }
-      else if ("neg" %in% input$sentiment) {
+      else if ("Negative" %in% input$sentiment) {
         plot = plot + 
           geom_point(mapping=aes(x=days, y=negative, colour="Negative"), alpha=.5)
         if (input$pattern) {
@@ -84,7 +105,7 @@ server <- function(input, output) {
             geom_smooth(method=loess, mapping=aes(x=days, y=negative), colour="black")
         }        
       }
-      else if ("neut" %in% input$sentiment) {
+      else if ("Neutral" %in% input$sentiment) {
         plot = plot + 
           geom_point(mapping=aes(x=days, y=neutral, colour="Neutral"), alpha=.5)
         
@@ -98,10 +119,10 @@ server <- function(input, output) {
         labs(x = "Date", y="Number of Mentions by Sentiment") +
         scale_colour_manual("", 
                             breaks = c("Positive", "Negative", "Neutral"),
-                            values = c("orange", "blue", "green"))
-        
+                            values = c("orange", "blue", "green")) +
+        coord_cartesian(ylim=c(0, input$maxY))
+      
       plot
-    }
-  })
+    })
 }
 shinyApp(ui, server)
