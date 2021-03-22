@@ -3,29 +3,17 @@ library(tidyverse)
 library(readxl)
 library(lubridate)
 library(nlme)
+library(dplyr)
+library(plotly)
+library(hrbrthemes)
 datasets <- read_excel("data/sentiments.xlsx")
 summaryTibble <- datasets %>%
-  summarize(mindate = min(days), maxdate = max(days), 
-            maxPos = max(positive), maxNeg = max(negative), 
-            maxNeut = max(neutral)) %>%
+  summarize(mindate = min(days), maxdate = max(days)) %>%
   head()
 
 
 minPossibleDate <- summaryTibble$mindate
 maxPossibleDate <- summaryTibble$maxdate
-maxPos <- summaryTibble$maxPos
-maxNeg <- summaryTibble$maxNeg
-maxNeut <- summaryTibble$maxNeut
-
-maxY <- maxPos
-if (maxNeg > maxY) {
-  maxY <- maxNeg
-}
-if (maxNeut > maxY) {
-  maxY <- maxNeut
-}
-
-
 
 ui <- pageWithSidebar(
   
@@ -46,9 +34,6 @@ ui <- pageWithSidebar(
                    start = minPossibleDate, end = maxPossibleDate,
                    min = minPossibleDate, max = maxPossibleDate
     ),
-    sliderInput("maxY", "Maximum Y-axis:",
-                min = 0, max = maxY, value = 25000
-    ),
   
     # Input: Checkbox for whether pattern line should be included ----
     checkboxInput("pattern", "Show pattern line", FALSE)
@@ -61,16 +46,12 @@ ui <- pageWithSidebar(
     h3(textOutput("caption")),
     
     # Output: Plot of the requested variable against mpg ----
-    plotOutput("sentimentPlot")
+    plotlyOutput("sentimentPlot")
   )
 )
 
 # Define server logic to plot
 server <- function(input, output, session) {
-  
-  observeEvent(input$sentiment, {
-    updateSliderInput(session, "maxY",value=maxY)
-  })
   
   # Compute the formula text ----
   formulaText <- reactive({
@@ -82,7 +63,7 @@ server <- function(input, output, session) {
     formulaText()
   })
   
-  output$sentimentPlot <- renderPlot({
+  output$sentimentPlot <- renderPlotly({
     tempData <- datasets %>%
       filter(days >= ymd(input$dateRange[1]), days <= ymd(input$dateRange[2]))
     
@@ -91,7 +72,7 @@ server <- function(input, output, session) {
       if ("Positive" %in% input$sentiment) {
           plot = plot + 
             geom_point(mapping=aes(x=days, y=positive, colour="Positive"), alpha=.5)
-          
+           
           if (input$pattern) {
             plot = plot +
               geom_smooth(method=loess, mapping=aes(x=days, y=positive), colour="black")
@@ -107,7 +88,7 @@ server <- function(input, output, session) {
       }
       else if ("Neutral" %in% input$sentiment) {
         plot = plot + 
-          geom_point(mapping=aes(x=days, y=neutral, colour="Neutral"), alpha=.5)
+          geom_point(mapping=aes(x=days, y=neutral, colour="Neutral"),alpha=.5)
         
         if (input$pattern) {
           plot = plot +
@@ -119,8 +100,20 @@ server <- function(input, output, session) {
         labs(x = "Date", y="Number of Mentions by Sentiment") +
         scale_colour_manual("", 
                             breaks = c("Positive", "Negative", "Neutral"),
-                            values = c("orange", "blue", "green")) +
-        coord_cartesian(ylim=c(0, input$maxY))
+                            values = c("orange", "blue", "green"))
+      
+      
+      plot <- ggplotly(plot, dynamicTicks=TRUE) %>%
+        style(hoverinfo = "none", traces = 3)
+      
+      text_smooth <- paste0("Date: ",as.Date(as.POSIXct(plot$x$data[[2]]$x, origin='1970-01-01')), 
+                       "<br>Count: ",plot$x$data[[2]]$y)
+      text_point <-  paste0("Date: ",as.Date(as.POSIXct(plot$x$data[[1]]$x, origin='1970-01-01')), 
+                          "<br>Count: ",plot$x$data[[1]]$y)
+
+      plot <- plot %>%
+        style(text=text_smooth, traces=2) %>%
+        style(text=text_point, traces=1)
       
       plot
     })
