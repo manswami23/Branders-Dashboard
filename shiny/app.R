@@ -6,6 +6,8 @@ library(nlme)
 library(dplyr)
 library(plotly)
 library(hrbrthemes)
+library(shinydashboard)
+
 datasets <- read_excel("data/sentiments.xlsx")
 summaryTibble <- datasets %>%
   summarize(mindate = min(days), maxdate = max(days)) %>%
@@ -15,40 +17,42 @@ summaryTibble <- datasets %>%
 minPossibleDate <- summaryTibble$mindate
 maxPossibleDate <- summaryTibble$maxdate
 
-ui <- pageWithSidebar(
-  
-  # App title ----
-  headerPanel("Sentiment By Day"),
-  
-  # Sidebar panel for inputs ----
-  sidebarPanel(
-    
-    # Input: Selector for variable to plot against mpg ----
-    selectInput("sentiment", "Sentiment to display:", 
-                c("Positive" = "Positive",
-                  "Negative" = "Negative",
-                  "Neutral" = "Neutral"), selected="pos"),
-    
-    dateRangeInput('dateRange',
-                   label = 'Date range input: yyyy-mm-dd',
-                   start = minPossibleDate, end = maxPossibleDate,
-                   min = minPossibleDate, max = maxPossibleDate
-    ),
-  
-    # Input: Checkbox for whether pattern line should be included ----
-    checkboxInput("pattern", "Show pattern line", FALSE)
-    
-  ),
-  
-  # Main panel for displaying outputs ----
-  mainPanel(
-    # Output: Formatted text for caption ----
-    h3(textOutput("caption")),
-    
-    # Output: Plot of the requested variable against mpg ----
-    plotlyOutput("sentimentPlot")
+ui <- dashboardPage(
+  dashboardHeader(disable=TRUE),
+  dashboardSidebar(),
+  dashboardBody(
+    # Boxes need to be put in a row (or column)
+    fluidRow(
+        box(background="orange",width=4,
+          # Input: Selector for variable to plot against mpg ----
+          selectInput("sentiment", "Sentiment to display:", 
+                      c("Positive" = "Positive",
+                        "Negative" = "Negative",
+                        "Neutral" = "Neutral"), selected="pos"),
+          
+          dateRangeInput('dateRange',
+                         label = 'Date range input: yyyy-mm-dd',
+                         start = minPossibleDate, end = maxPossibleDate,
+                         min = minPossibleDate, max = maxPossibleDate
+          ),
+          
+          # Input: Checkbox for whether pattern line should be included ----
+          checkboxInput("pattern", "Show pattern line", FALSE)
+          
+        ),
+        box(background="orange", width= 8,
+          mainPanel(
+            # Output: Formatted text for caption ----
+            h3(textOutput("caption")),
+            
+            # Output: Plot of the requested variable against mpg ----
+            plotlyOutput("sentimentPlot",  width = "500px")
+          )
+        )
+    )
   )
 )
+
 
 # Define server logic to plot
 server <- function(input, output, session) {
