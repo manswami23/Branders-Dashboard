@@ -37,17 +37,16 @@ ui <- dashboardPage(
           ),
           
           # Input: Checkbox for whether pattern line should be included ----
-          checkboxInput("pattern", "Show pattern line", FALSE)
+          checkboxInput("pattern", "Show pattern line", FALSE),
+          
           
         ),
-        box(background="orange", width= 8,
-          mainPanel(
-            # Output: Formatted text for caption ----
-            h3(textOutput("caption")),
-            
-            # Output: Plot of the requested variable against mpg ----
-            plotlyOutput("sentimentPlot",  width = "500px")
-          )
+        mainPanel(
+          # Output: Formatted text for caption ----
+          h3(textOutput("caption")),
+          
+          # Output: Plot of the requested variable against mpg ----
+          plotlyOutput("sentimentPlot",  width = "500px")
         )
     )
   )
