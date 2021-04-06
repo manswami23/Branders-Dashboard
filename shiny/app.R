@@ -9,7 +9,7 @@ library(hrbrthemes)
 library(shinydashboard)
 require(maps)
 library(shinyjs)
-
+library(shinycssloaders)
 #Create data for the scatter plot
 datasets <- read_excel("data/sentiments.xlsx")
 summaryTibble <- datasets %>%
@@ -76,11 +76,17 @@ geography_data_with_map <- world_map_named %>%
 emotions <- read_excel("data/emotions.xlsx")
 
 emotion_pivot <- emotions %>%
-  pivot_longer(!days, names_to = "Emotion", values_to = "Count") %>%
+  mutate(Joy = joy,
+         Surprise = surprise,
+         Anger = anger,
+         Fear = fear,
+         Sadness = sadness,
+         Disgust = disgust) %>%
+  pivot_longer(Joy:Disgust, names_to = "Emotion", values_to = "Count") %>%
   mutate(Day=days)
 
 
-summaryTibbleEmotions <- datasets %>%
+summaryTibbleEmotions <- emotions %>%
   summarize(mindate = min(days), maxdate = max(days)) %>%
   head()
 
@@ -88,13 +94,37 @@ summaryTibbleEmotions <- datasets %>%
 minPossibleDateEmotion <- summaryTibbleEmotions$mindate
 maxPossibleDateEmotion <- summaryTibbleEmotions$maxdate
 
+#Create data for the news plot
+
+# List all files ending with csv in directory
+csv_files = list.files(path = 'data/News_Media_Data_Starbucks', pattern = "csv$", full.names = TRUE)
+# Read each csv file into a list
+dataNews <- map_dfr(csv_files, read_csv)
+
+dataNews2 <- dataNews %>%
+  filter(str_detect(str_to_upper(title, locale = "en"), "STARBUCKS")) %>%
+  mutate(positivity_score = bing_liu_pos / (bing_liu_pos + bing_liu_neg)) %>%
+  mutate(negativity_score = bing_liu_neg / (bing_liu_pos + bing_liu_neg)) %>%
+  select(publication_date, positivity_score, negativity_score, bing_liu_pos, bing_liu_neg)
+
+summaryTibbleNews <- dataNews2 %>%
+  summarize(mindate = min(publication_date), maxdate = max(publication_date)) %>%
+  head()
+
+minPossibleDateNews <- summaryTibbleNews$mindate
+maxPossibleDateNews <- summaryTibbleNews$maxdate
+
+
+# Options for Spinner
+options(spinner.color="#0275D8", spinner.color.background="#ffffff", spinner.size=2)
+
 ui <- dashboardPage(
   dashboardHeader(disable=TRUE),
   dashboardSidebar(),
   dashboardBody(
     fluidPage(
       tabsetPanel(
-        tabPanel("Sentiment Over Time", 
+        tabPanel("Social Media Sentiment Over Time", 
                  fluidRow(
                    # Boxes need to be put in a row (or column)
                    box(background="orange",width=4,
@@ -118,49 +148,69 @@ ui <- dashboardPage(
                    mainPanel(
                      # Output: Formatted text for caption ----
                      h3(textOutput("caption")),
+                     withSpinner(plotlyOutput("sentimentPlot",  width = "500px"), type = 2)
+                   )
+                 )
+        ),
+        tabPanel("News Media Sentiment Over Time", 
+                 fluidRow(
+                   # Boxes need to be put in a row (or column)
+                   box(background="orange",width=4,
+                       selectInput("newsSentiment", "Sentiment to display:", 
+                                   c("Positive" = "Positive",
+                                     "Negative" = "Negative"), selected="pos"),
+                       
+                       
+                       dateRangeInput('dateRangeNews',
+                                      label = 'Date range input: yyyy-mm-dd',
+                                      start = minPossibleDateNews, end = maxPossibleDateNews,
+                                      min = minPossibleDateNews, max = maxPossibleDateNews
+                       ),
+                       
+                       
+                   ),
+                   mainPanel(
+                     # Output: Formatted text for caption ----
+                     h3(textOutput("captionNews")),
                      
-                     # Output: Plot of the requested variable against mpg ----
-                     plotlyOutput("sentimentPlot",  width = "500px")
+                     withSpinner(plotlyOutput("sentimentNewsPlot",  width = "500px"), type = 2)
                    )
                  )
         ),
         tabPanel("Emotions over Time", 
                  fluidRow(useShinyjs(),
-                   # Boxes need to be put in a row (or column)
-                   box(background="orange",width=4,
-                       selectInput("type", "Graph to Display:", 
-                                   c("Bar" = "Bar",
-                                     "Line" = "Line"), selected="Line"),
-                       selectInput(
-                         inputId = "emotionTypes", label = "Emotions to include:",
-                         choices = c("anger", "sadness", "disgust",
-                                     "fear", "joy", "surprise"),
-                         multiple=TRUE,
-                         selected = "joy", width = "350px"
-                       ),
-                       
-                       dateRangeInput('dateRangeEmotion',
-                                      label = 'Date range input: yyyy-mm-dd',
-                                      start = minPossibleDateEmotion, end = maxPossibleDateEmotion,
-                                      min = minPossibleDateEmotion, max = maxPossibleDateEmotion
-                       ),
-                   ),
-                   mainPanel(
-                     # Output: Formatted text for caption ----
-                     h3("Emotions over Time"),
-                     
-                     # Output: Plot of the requested variable against mpg ----
-                     plotlyOutput("emotionPlot")
-                   )
+                          # Boxes need to be put in a row (or column)
+                          box(background="orange",width=4,
+                              selectInput("type", "Graph to Display:", 
+                                          c("Bar (useful for short date ranges)" = "Bar",
+                                            "Line" = "Line"), selected="Line"),
+                              selectInput(
+                                inputId = "emotionTypes", label = "Emotions to include:",
+                                choices = c("Anger", "Sadness", "Disgust",
+                                            "Fear", "Joy", "Surprise"),
+                                multiple=TRUE,
+                                selected = "Joy", width = "350px"
+                              ),
+                              
+                              dateRangeInput('dateRangeEmotion',
+                                             label = 'Date range input: yyyy-mm-dd',
+                                             start = minPossibleDateEmotion, end = maxPossibleDateEmotion,
+                                             min = minPossibleDateEmotion, max = maxPossibleDateEmotion
+                              ),
+                          ),
+                          mainPanel(
+                            # Output: Formatted text for caption ----
+                            h3(textOutput("captionEmotion")),
+                            
+                            withSpinner(plotlyOutput("emotionPlot"), type = 2)
+                          )
                  )
         ),
         tabPanel("World Tweet Volume",
                  mainPanel(
                    # Output: Formatted text for caption ----
                    h3("World Tweet Volume"),
-                   
-                   # Output: Plot of the requested variable against mpg ----
-                   plotlyOutput("geographyPlot", width="800px")
+                   withSpinner(plotlyOutput("geographyPlot", width="800px"), type = 2)
                  )
         )
       )
@@ -173,12 +223,33 @@ server <- function(input, output, session) {
   
   # Compute the formula text ----
   formulaText <- reactive({
-    paste(input$sentiment, " Sentiment by Day")
+    paste(input$sentiment, " Sentiment Pattern by Day - Social Media")
+  })
+  
+  formulaTextNews <- reactive({
+    paste(input$newsSentiment, " Sentiment Pattern by Day - News")
+  })
+  
+  formulaTextEmotion <- reactive({
+    if ("Line" %in% input$type) {
+      paste("Emotions over Time")
+    }
+    else {
+      paste("Proportion of Emotions over Time")
+    }
   })
   
   # Return the formula text for printing as a caption ----
   output$caption <- renderText({
     formulaText()
+  })
+  
+  output$captionNews <- renderText({
+    formulaTextNews()
+  })
+  
+  output$captionEmotion <- renderText({
+    formulaTextEmotion()
   })
   
   observeEvent(input$type, {
@@ -190,6 +261,7 @@ server <- function(input, output, session) {
       shinyjs::hide(id = "emotionTypes")
     }
   })
+  
   
   output$sentimentPlot <- renderPlotly({
     tempData <- datasets %>%
@@ -278,14 +350,51 @@ server <- function(input, output, session) {
         geom_line(mapping=aes(x=Day, y=Count)) +
         facet_wrap(~ Emotion, nrow=3) +
         labs(x="Date", y = "Frequency (Raw count)")
+      plot <- ggplotly(plot, dynamicTicks=TRUE)
     }
     else {
       plot = ggplot(data=tempData)
       plot <- plot + 
-        geom_col(position="fill", mapping=aes(x=Day, y=Count, fill=Emotion)) + 
-        labs(x="Date", y = "Ratio of emotions")
+        geom_col(position="fill", mapping=aes(x=Day, y=Count, fill=Emotion, text=paste("Day: ", Day, "<br>", "Emotion: ", Emotion, "<br>", "Count: ", Count))) + 
+        labs(x="Date", y = "Proportion of emotions")
+      plot <- ggplotly(plot, dynamicTicks=TRUE, tooltip = c("text"))
     }
-    plot <- ggplotly(plot, dynamicTicks=TRUE)
+    plot
+  })
+  
+  output$sentimentNewsPlot <- renderPlotly({
+    tempData <- dataNews2 %>%
+      filter(publication_date >= ymd(input$dateRangeNews[1]), publication_date <= ymd(input$dateRangeNews[2]))
+    if (!is.null(input$newsSentiment)) {
+      plot = ggplot(data=tempData)
+    }
+    else {
+      return(ggplot(data=tempData))
+    }
+    
+    if ("Positive" %in% input$newsSentiment) {
+      plot = plot +
+        geom_smooth(method=loess, mapping=aes(x=publication_date, y=positivity_score), colour="black")
+    }
+    else if ("Negative" %in% input$newsSentiment) {
+      plot = plot +
+        geom_smooth(method=loess, mapping=aes(x=publication_date, y=negativity_score), colour="black")
+    }
+    
+    plot = 
+      plot +
+      labs(x = "Date", y="Sentiment Score [0 to 1]")
+    
+    
+    plot <- ggplotly(plot, dynamicTicks=TRUE) %>%
+      style(hoverinfo = "none", traces = 2)
+    
+    text_smooth <-  paste0("Date: ",as.Date(as.POSIXct(plot$x$data[[1]]$x, origin='1970-01-01')), 
+                           "<br>Score: ",plot$x$data[[1]]$y)
+    
+    plot <- plot %>%
+      style(text=text_smooth, traces=1)
+    
     plot
   })
 }
