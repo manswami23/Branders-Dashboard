@@ -12,3 +12,6 @@ def analytics():
 @app.route('/news-media.html')
 def nm():
     return render_template("news-media.html")
+
+if __name__ == '__main__':
+    app.run('localhost', 5000)
