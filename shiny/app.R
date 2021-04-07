@@ -356,7 +356,7 @@ server <- function(input, output, session) {
       plot = ggplot(data=tempData)
       plot <- plot + 
         geom_col(position="fill", mapping=aes(x=Day, y=Count, fill=Emotion, text=paste("Day: ", Day, "<br>", "Emotion: ", Emotion, "<br>", "Count: ", Count))) + 
-        labs(x="Date", y = "Proportion of Emotions")
+        labs(x="Date", y = "Proportion of Emotions") 
       plot <- ggplotly(plot, dynamicTicks=TRUE, tooltip = c("text"))
     }
     plot
