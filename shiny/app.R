@@ -349,14 +349,14 @@ server <- function(input, output, session) {
       plot <- plot + 
         geom_line(mapping=aes(x=Day, y=Count)) +
         facet_wrap(~ Emotion, nrow=3) +
-        labs(x="Date", y = "Frequency (Raw count)")
+        labs(x="Date", y = "Frequency (Raw Count)")
       plot <- ggplotly(plot, dynamicTicks=TRUE)
     }
     else {
       plot = ggplot(data=tempData)
       plot <- plot + 
         geom_col(position="fill", mapping=aes(x=Day, y=Count, fill=Emotion, text=paste("Day: ", Day, "<br>", "Emotion: ", Emotion, "<br>", "Count: ", Count))) + 
-        labs(x="Date", y = "Proportion of emotions")
+        labs(x="Date", y = "Proportion of Emotions")
       plot <- ggplotly(plot, dynamicTicks=TRUE, tooltip = c("text"))
     }
     plot
