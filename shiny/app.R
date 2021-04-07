@@ -120,14 +120,14 @@ options(spinner.color="#0275D8", spinner.color.background="#ffffff", spinner.siz
 
 ui <- dashboardPage(
   dashboardHeader(disable=TRUE),
-  dashboardSidebar(),
+  dashboardSidebar(disable=TRUE),
   dashboardBody(
     fluidPage(
       tabsetPanel(
         tabPanel("Social Media Sentiment Over Time", 
                  fluidRow(
                    # Boxes need to be put in a row (or column)
-                   box(background="orange",width=4,
+                   box(background="light-blue",width=4,
                        # Input: Selector for variable to plot against mpg ----
                        selectInput("sentiment", "Sentiment to display:", 
                                    c("Positive" = "Positive",
@@ -155,7 +155,7 @@ ui <- dashboardPage(
         tabPanel("News Media Sentiment Over Time", 
                  fluidRow(
                    # Boxes need to be put in a row (or column)
-                   box(background="orange",width=4,
+                   box(background="light-blue",width=4,
                        selectInput("newsSentiment", "Sentiment to display:", 
                                    c("Positive" = "Positive",
                                      "Negative" = "Negative"), selected="pos"),
@@ -180,7 +180,7 @@ ui <- dashboardPage(
         tabPanel("Emotions over Time", 
                  fluidRow(useShinyjs(),
                           # Boxes need to be put in a row (or column)
-                          box(background="orange",width=4,
+                          box(background="light-blue",width=4,
                               selectInput("type", "Graph to Display:", 
                                           c("Bar (useful for short date ranges)" = "Bar",
                                             "Line" = "Line"), selected="Line"),
@@ -398,4 +398,5 @@ server <- function(input, output, session) {
     plot
   })
 }
-shinyApp(ui, server)
+app <- shinyApp(ui, server)
+runApp(app, port=7000)
