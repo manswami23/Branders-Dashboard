@@ -607,6 +607,13 @@ ul.contact li a.icon-rss:before
 	border-top: 1px solid rgba(255,255,255,0.08);
 }
 
+#iframe-wrapper
+{
+	margin-left: auto;
+	margin-right: auto;
+	width: 50%;
+}
+
 #copyright p
 {
 	letter-spacing: 0.20em;
@@ -633,6 +640,28 @@ ul.contact li a.icon-rss:before
 	/* background: #3cffcd; */
 	background: #60c1ae;
 	text-align: center;
+}
+
+.leftside, .rightside
+{
+	height: 100vh;
+	width: 100%;
+}
+
+.leftside
+{
+	/* text-align: left; */
+}
+
+.lbutton
+{
+	background-color: #092a5c;
+	color: white;
+}
+
+.rightside
+{
+	/* text-align: right; */
 }
 
 #featured

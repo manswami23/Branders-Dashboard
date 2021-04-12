@@ -1,9 +1,63 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Basic Web Page</title>
+        <title>Branders</title>
+
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+        <link href="http://fonts.googleapis.com/css?family=Source+Sans+Pro:200,300,400,600,700,900" rel="stylesheet" />
+        <link href="../static/css/default.css" rel="stylesheet" type="text/css" media="all" />
+        <link href="../static/css/fonts.css" rel="stylesheet" type="text/css" media="all" />
+
     </head>
     <body>
-Hello World!
+
+        <div id="header-wrapper">
+            <div id="header" class="container">
+                <div id="logo">
+                    <h1></span><a href="{{ url_for('home') }}">Branders</a></h1>
+                </div>
+                <div id="menu">
+                    <ul>
+                        <li class="current_page_item"><a href="{{ url_for('analytics') }}" accesskey="1" title="">Analytics</a></li>
+                        <li><a href="news-media.html" accesskey="2" title="">News & Media</a></li>
+                        <li><a href="https://sites.google.com/view/the-branders/home" accesskey="3" title="">Resources</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div id="featured-wrapper">
+            <div class="row">
+                <div class="col">
+                    <div class="leftside">
+                        <h1>Create Post</h1>
+                        <!-- <form action="" method="POST"> -->
+                        <form action="">
+                        <label for="caption"></label>
+                        <textarea id="caption" name="caption" placeholder="Enter caption here..." rows="5" cols="50"></textarea>
+                        <br><br>
+                        <label for="Twitter">Twitter:</label>
+                        <input type="checkbox" id="Twitter" name="Twitter"><br><br>
+                        <label for="Facebook">Facebook:</label>
+                        <input type="checkbox" id="Facebook" name="Facebook"><br><br>
+                        <input class="btn lbutton" type="submit" value="Submit">
+                        </form>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="rightside">
+                        <h1>News</h1>
+                        <embed type="text/html" src="https://lite.cnn.com/en"  width="500" height="375">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="copyright">
+            <div id="iframe-wrapper">
+                <iframe src="https://www.bing.com" height="400" width="800" title="Search Engine"></iframe>
+            </div>
+        </div>
+
     </body>
 </html>
