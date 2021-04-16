@@ -96,16 +96,9 @@ maxPossibleDateEmotion <- summaryTibbleEmotions$maxdate
 
 #Create data for the news plot
 
-# List all files ending with csv in directory
-csv_files = list.files(path = 'data/News_Media_Data_Starbucks', pattern = "csv$", full.names = TRUE)
-# Read each csv file into a list
-dataNews <- map_dfr(csv_files, read_csv)
 
-dataNews2 <- dataNews %>%
-  filter(str_detect(str_to_upper(title, locale = "en"), "STARBUCKS")) %>%
-  mutate(positivity_score = bing_liu_pos / (bing_liu_pos + bing_liu_neg)) %>%
-  mutate(negativity_score = bing_liu_neg / (bing_liu_pos + bing_liu_neg)) %>%
-  select(publication_date, positivity_score, negativity_score, bing_liu_pos, bing_liu_neg)
+dataNews2 <- read_csv("data/News_Data.csv")
+
 
 summaryTibbleNews <- dataNews2 %>%
   summarize(mindate = min(publication_date), maxdate = max(publication_date)) %>%
@@ -398,5 +391,5 @@ server <- function(input, output, session) {
     plot
   })
 }
-app <- shinyApp(ui, server)
-runApp(app, port=7000)
+
+shinyApp(ui, server)
