@@ -5,6 +5,7 @@ import KeysAndTokens
 app = Flask(__name__)
 
 # twitter authentication
+# https://twitter.com/tester3216
 auth = tweepy.OAuthHandler(KeysAndTokens.API_KEY, KeysAndTokens.API_KEY_SECRET)
 auth.set_access_token(KeysAndTokens.ACCESS_TOKEN, KeysAndTokens.ACCESS_TOKEN_SECRET)
 twitterApi = tweepy.API(auth)
