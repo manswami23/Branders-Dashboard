@@ -142,7 +142,7 @@ ui <- dashboardPage(
                    mainPanel(
                      # Output: Formatted text for caption ----
                      h3(textOutput("caption")),
-                     h3(textOutput("error1")),
+                     h3(textOutput("error1"), style = "color: red;"),
                      withSpinner(plotlyOutput("sentimentPlot",  width = "500px"), type = 2)
                    )
                  )
@@ -170,7 +170,7 @@ ui <- dashboardPage(
                    mainPanel(
                      # Output: Formatted text for caption ----
                      h3(textOutput("captionNews")),
-                     h3(textOutput("error2")),
+                     h3(textOutput("error2"), style = "color: red;"),
                      withSpinner(plotlyOutput("sentimentNewsPlot",  width = "500px"), type = 2)
                    )
                  )
@@ -199,7 +199,7 @@ ui <- dashboardPage(
                           mainPanel(
                             # Output: Formatted text for caption ----
                             h3(textOutput("captionEmotion")),
-                            h3(textOutput("error3")),
+                            h3(textOutput("error3"), style = "color: red;"),
                             withSpinner(plotlyOutput("emotionPlot"), type = 2)
                           )
                  )
