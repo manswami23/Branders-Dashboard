@@ -10,6 +10,7 @@ library(shinydashboard)
 require(maps)
 library(shinyjs)
 library(shinycssloaders)
+library(viridis)
 #Create data for the scatter plot
 datasets <- read_excel("data/sentiments.xlsx")
 summaryTibble <- datasets %>%
@@ -125,7 +126,9 @@ ui <- dashboardPage(
                        selectInput("sentiment", "Sentiment to display:", 
                                    c("Positive" = "Positive",
                                      "Negative" = "Negative",
-                                     "Neutral" = "Neutral"), selected="pos"),
+                                     "Neutral" = "Neutral"), 
+                                   multiple=TRUE,
+                                   selected="Positive"),
                        
                        dateRangeInput('dateRange',
                                       label = 'Date range input: yyyy-mm-dd',
@@ -133,14 +136,13 @@ ui <- dashboardPage(
                                       min = minPossibleDate, max = maxPossibleDate
                        ),
                        
-                       # Input: Checkbox for whether pattern line should be included ----
-                       checkboxInput("pattern", "Show pattern line", FALSE),
-                       
-                       
+                       # Input: Checkbox for whether confidence interval should be included ----
+                       checkboxInput("conf", "Show confidence interval", FALSE),
                    ),
                    mainPanel(
                      # Output: Formatted text for caption ----
                      h3(textOutput("caption")),
+                     h3(textOutput("error1")),
                      withSpinner(plotlyOutput("sentimentPlot",  width = "500px"), type = 2)
                    )
                  )
@@ -151,7 +153,9 @@ ui <- dashboardPage(
                    box(background="light-blue",width=4,
                        selectInput("newsSentiment", "Sentiment to display:", 
                                    c("Positive" = "Positive",
-                                     "Negative" = "Negative"), selected="pos"),
+                                     "Negative" = "Negative"),
+                                   multiple=TRUE,
+                                   selected="Positive"),
                        
                        
                        dateRangeInput('dateRangeNews',
@@ -159,13 +163,14 @@ ui <- dashboardPage(
                                       start = minPossibleDateNews, end = maxPossibleDateNews,
                                       min = minPossibleDateNews, max = maxPossibleDateNews
                        ),
-                       
+                       # Input: Checkbox for whether confidence interval should be included ----
+                       checkboxInput("conf2", "Show confidence interval", FALSE),
                        
                    ),
                    mainPanel(
                      # Output: Formatted text for caption ----
                      h3(textOutput("captionNews")),
-                     
+                     h3(textOutput("error2")),
                      withSpinner(plotlyOutput("sentimentNewsPlot",  width = "500px"), type = 2)
                    )
                  )
@@ -194,15 +199,15 @@ ui <- dashboardPage(
                           mainPanel(
                             # Output: Formatted text for caption ----
                             h3(textOutput("captionEmotion")),
-                            
+                            h3(textOutput("error3")),
                             withSpinner(plotlyOutput("emotionPlot"), type = 2)
                           )
                  )
         ),
-        tabPanel("World Tweet Volume",
+        tabPanel("World Tweet Volume for Starbucks",
                  mainPanel(
                    # Output: Formatted text for caption ----
-                   h3("World Tweet Volume"),
+                   h3("World Tweet Volume for Starbucks"),
                    withSpinner(plotlyOutput("geographyPlot", width="800px"), type = 2)
                  )
         )
@@ -216,11 +221,11 @@ server <- function(input, output, session) {
   
   # Compute the formula text ----
   formulaText <- reactive({
-    paste(input$sentiment, " Sentiment Pattern by Day - Social Media")
+    paste("Sentiment Pattern by Day - Social Media")
   })
   
   formulaTextNews <- reactive({
-    paste(input$newsSentiment, " Sentiment Pattern by Day - News")
+    paste("Sentiment Pattern by Day - News")
   })
   
   formulaTextEmotion <- reactive({
@@ -229,6 +234,51 @@ server <- function(input, output, session) {
     }
     else {
       paste("Proportion of Emotions over Time")
+    }
+  })
+  
+  formulaTextError1 <- reactive({
+    tempData <- datasets %>%
+      filter(days >= ymd(input$dateRange[1]), days <= ymd(input$dateRange[2]))
+    if(dim(tempData)[1] > 0) {
+      paste("")
+    }
+    else {
+      paste("No data available in filtered set")
+    }
+  })
+  
+  formulaTextError2 <- reactive({
+    tempData <- dataNews2 %>%
+      filter(publication_date >= ymd(input$dateRangeNews[1]), publication_date <= ymd(input$dateRangeNews[2]))
+    if(dim(tempData)[1] > 0) {
+      paste("")
+    }
+    else {
+      paste("No data available in filtered set")
+    }
+  })
+  
+  formulaTextError3 <- reactive({
+    tempData <- emotion_pivot %>%
+      filter(Day >= ymd(input$dateRangeEmotion[1]), Day <= ymd(input$dateRangeEmotion[2]))
+    if(dim(tempData)[1] <= 0) {
+      paste("No data available in filtered set")
+    }
+    else {
+      if ("Line" %in% input$type) {
+        tempData <- tempData %>%
+          filter(str_detect(Emotion, paste(input$emotionTypes, collapse="|")))
+        if(dim(tempData)[1] <= 0) {
+          paste("No data available in filtered set")
+        }
+        else {
+          paste("")
+        }
+      }
+      else {
+        paste("")
+      }
     }
   })
   
@@ -245,6 +295,18 @@ server <- function(input, output, session) {
     formulaTextEmotion()
   })
   
+  output$error1 <- renderText({
+    formulaTextError1()
+  })
+  
+  output$error2 <- renderText({
+    formulaTextError2()
+  })
+  
+  output$error3 <- renderText({
+    formulaTextError3()
+  })
+  
   observeEvent(input$type, {
     
     if("Line" %in% input$type) {
@@ -259,57 +321,49 @@ server <- function(input, output, session) {
   output$sentimentPlot <- renderPlotly({
     tempData <- datasets %>%
       filter(days >= ymd(input$dateRange[1]), days <= ymd(input$dateRange[2]))
-    
-    if (!is.null(input$sentiment))
-      plot = ggplot(data=tempData)
+    plot = ggplot(data=tempData)
+    if (!is.null(input$sentiment) & dim(tempData)[1] > 0) {
+      colors <- c("Positive" = "Orange", "Negative" = "Blue", "Neutral" = "Green")
       if ("Positive" %in% input$sentiment) {
-          plot = plot + 
-            geom_point(mapping=aes(x=days, y=positive, colour="Positive"), alpha=.5)
-           
-          if (input$pattern) {
-            plot = plot +
-              geom_smooth(method=loess, mapping=aes(x=days, y=positive), colour="black")
-          }
-      }
-      else if ("Negative" %in% input$sentiment) {
-        plot = plot + 
-          geom_point(mapping=aes(x=days, y=negative, colour="Negative"), alpha=.5)
-        if (input$pattern) {
           plot = plot +
-            geom_smooth(method=loess, mapping=aes(x=days, y=negative), colour="black")
-        }        
+            geom_smooth(method=loess, mapping=aes(x=days, y=positive, colour="Positive"), se=input$conf)
       }
-      else if ("Neutral" %in% input$sentiment) {
-        plot = plot + 
-          geom_point(mapping=aes(x=days, y=neutral, colour="Neutral"),alpha=.5)
-        
-        if (input$pattern) {
+      if ("Negative" %in% input$sentiment) {
           plot = plot +
-            geom_smooth(method=loess, mapping=aes(x=days, y=neutral), colour="black")
-        }  
+            geom_smooth(method=loess, mapping=aes(x=days, y=negative, colour="Negative"), se=input$conf)
+      }
+      if ("Neutral" %in% input$sentiment) {
+          plot = plot +
+            geom_smooth(method=loess, mapping=aes(x=days, y=neutral,  colour="Neutral"), se=input$conf)
       }
       plot = 
         plot +
-        labs(x = "Date", y="Number of Mentions by Sentiment") +
-        scale_colour_manual("", 
-                            breaks = c("Positive", "Negative", "Neutral"),
-                            values = c("orange", "blue", "green"))
+        labs(x = "Date", y="Number of Mentions by Sentiment", colour = "") +
+        scale_color_manual(values = colors)
       
       
-      plot <- ggplotly(plot, dynamicTicks=TRUE) %>%
-        style(hoverinfo = "none", traces = 3)
+      plot <- ggplotly(plot, dynamicTicks=TRUE)
       
-      text_smooth <- paste0("Date: ",as.Date(as.POSIXct(plot$x$data[[2]]$x, origin='1970-01-01')), 
-                       "<br>Count: ",plot$x$data[[2]]$y)
-      text_point <-  paste0("Date: ",as.Date(as.POSIXct(plot$x$data[[1]]$x, origin='1970-01-01')), 
-                          "<br>Count: ",plot$x$data[[1]]$y)
+      len = length(plot$x$data)
+      
 
-      plot <- plot %>%
-        style(text=text_smooth, traces=2) %>%
-        style(text=text_point, traces=1)
+      for (i in 1:len) {
+        if(plot$x$data[[i]]$showlegend){
+          text_smooth <- paste0("Date: ",as.Date(as.POSIXct(plot$x$data[[i]]$x, origin='1970-01-01')), 
+                                "<br>Count: ",plot$x$data[[i]]$y)
+          plot <- plot %>%
+            style(text=text_smooth, traces=i)
+        }
+        else {
+          plot <- plot %>%
+            style(hoverinfo="none", traces=i)
+        }
+      }
       
-      plot
-    })
+      
+    }
+    plot
+  })
   
   output$geographyPlot <- renderPlotly({
     plot <- ggplot(geography_data_with_map, aes(long, lat, group = group,  text=paste("Region: ", region, "\nNumber of Tweets: ", geo_vol)))+
@@ -334,9 +388,15 @@ server <- function(input, output, session) {
     
     tempData <- emotion_pivot %>%
       filter(Day >= ymd(input$dateRangeEmotion[1]), Day <= ymd(input$dateRangeEmotion[2]))
+    if(dim(tempData)[1] <= 0) {
+      return(ggplot(data=tempData))
+    }
     if ("Line" %in% input$type) {
       tempData <- tempData %>%
         filter(str_detect(Emotion, paste(input$emotionTypes, collapse="|")))
+      if(dim(tempData)[1] <= 0) {
+        return(ggplot(data=tempData))
+      }
       plot = ggplot(data=tempData)
       
       plot <- plot + 
@@ -346,10 +406,13 @@ server <- function(input, output, session) {
       plot <- ggplotly(plot, dynamicTicks=TRUE)
     }
     else {
+      colors3 <- c("Joy" = "#DDCC77", "Surprise" = "#CC6677", "Sadness" = "#88CCEE",
+                  "Anger"="#332288", "Disgust" = "#117733", "Fear" = "#882255")
       plot = ggplot(data=tempData)
       plot <- plot + 
         geom_col(position="fill", mapping=aes(x=Day, y=Count, fill=Emotion, text=paste("Day: ", Day, "<br>", "Emotion: ", Emotion, "<br>", "Count: ", Count))) + 
-        labs(x="Date", y = "Proportion of Emotions") 
+        labs(x="Date", y = "Proportion of Emotions", fill="") +
+        scale_fill_manual(values=colors3)
       plot <- ggplotly(plot, dynamicTicks=TRUE, tooltip = c("text"))
     }
     plot
@@ -358,35 +421,44 @@ server <- function(input, output, session) {
   output$sentimentNewsPlot <- renderPlotly({
     tempData <- dataNews2 %>%
       filter(publication_date >= ymd(input$dateRangeNews[1]), publication_date <= ymd(input$dateRangeNews[2]))
-    if (!is.null(input$newsSentiment)) {
+    if (!is.null(input$newsSentiment)  & dim(tempData)[1] > 0) {
       plot = ggplot(data=tempData)
     }
     else {
       return(ggplot(data=tempData))
     }
-    
+    colors2 <- c("Positive" = "Orange", "Negative" = "Blue")
     if ("Positive" %in% input$newsSentiment) {
       plot = plot +
-        geom_smooth(method=loess, mapping=aes(x=publication_date, y=positivity_score), colour="black")
+        geom_smooth(method=loess, mapping=aes(x=publication_date, y=pos, colour="Positive"), se=input$conf2)
     }
-    else if ("Negative" %in% input$newsSentiment) {
+    if ("Negative" %in% input$newsSentiment) {
       plot = plot +
-        geom_smooth(method=loess, mapping=aes(x=publication_date, y=negativity_score), colour="black")
+        geom_smooth(method=loess, mapping=aes(x=publication_date, y=neg, colour="Negative"), se=input$conf2)
     }
     
     plot = 
       plot +
-      labs(x = "Date", y="Sentiment Score [0 to 1]")
+      labs(x = "Date", y="Sentiment Frequency", colour="") +
+      scale_color_manual(values = colors2)
     
     
-    plot <- ggplotly(plot, dynamicTicks=TRUE) %>%
-      style(hoverinfo = "none", traces = 2)
+    plot <- ggplotly(plot, dynamicTicks=TRUE)
     
-    text_smooth <-  paste0("Date: ",as.Date(as.POSIXct(plot$x$data[[1]]$x, origin='1970-01-01')), 
-                           "<br>Score: ",plot$x$data[[1]]$y)
+    len = length(plot$x$data)
     
-    plot <- plot %>%
-      style(text=text_smooth, traces=1)
+    for (i in 1:len) {
+      if(plot$x$data[[i]]$showlegend){
+        text_smooth <- paste0("Date: ",as.Date(as.POSIXct(plot$x$data[[i]]$x, origin='1970-01-01')), 
+                              "<br>Score: ",plot$x$data[[i]]$y)
+        plot <- plot %>%
+          style(text=text_smooth, traces=i)
+      }
+      else {
+        plot <- plot %>%
+          style(hoverinfo="none", traces=i)
+      }
+    }
     
     plot
   })
